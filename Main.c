@@ -2,6 +2,10 @@
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "hardware/adc.h"
+#include "pico/bootrom.h"
+#include "lib/buzzer.h"
+#include "lib/leds.h"
+#include "lib/matrizRGB.h"
 #include "lib/ssd1306.h"
 
 // Código para revisar tudo sobre O Embarcatech, e aprender mais, seguir as novas sugestões
@@ -10,13 +14,17 @@
 static ssd1306_t ssd;
 static const uint32_t VRY_PIN = 27;
 static const uint32_t VRX_PIN = 26;
+static const uint32_t SW_PIN = 22;
 
 static const uint32_t BUTTON_A = 5;
 static const uint32_t BUTTON_B = 6;
 
-static volatile uint32_t temporizador = 0;
-static volatile uint32_t last_button_time = 0;
-static volatile bool modo_debbug_joystick = false;
+volatile uint32_t temporizador = 0;
+volatile uint32_t last_button_time = 0;
+volatile bool modo_debbug_joystick = false;
+volatile bool modo_terminal = false;
+volatile bool led_rgb_estado = false;
+volatile bool matriz_estado = false;
 
 #define I2C_PORT i2c1
 #define I2C_SDA 14
@@ -63,11 +71,14 @@ int main()
     // Configurando os pinos dos botões como entrada com pull-up
     gpio_set_dir(BUTTON_A, GPIO_IN);
     gpio_set_dir(BUTTON_B, GPIO_IN);
+    gpio_set_dir(SW_PIN, GPIO_IN);
     gpio_pull_up(BUTTON_A);
     gpio_pull_up(BUTTON_B);
+    gpio_pull_up(SW_PIN);
 
     gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handle);
     gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handle);
+    gpio_set_irq_enabled_with_callback(SW_PIN, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handle);
 
     ssd1306_fill(&ssd, false);
     ssd1306_send_data(&ssd);
@@ -100,7 +111,11 @@ int main()
 
     // Desenhar A na posição central com base nos valores centrais dos joysticks
     ssd1306_draw_string(&ssd, "A", dados.x_mapeado, dados.y_mapeado);
+
     ssd1306_send_data(&ssd);
+
+    npInit(7);  // Inicializa a matriz RGB no pino 7
+    led_init(); // Inicializa os LEDs RGB
 
     while (true)
     {
@@ -112,24 +127,156 @@ int main()
         adc_select_input(1);
         adc_value_x = adc_read();
 
-        // Remapeando os valores lidos do ADC
-
-        remapear_valores(adc_value_x, adc_value_y, &dados);
-        // Desenhando o quadrado na posição remapeada
-        ssd1306_fill(&ssd, false); // Limpa a tela
-        ssd1306_send_data(&ssd);
-        draw_square(&ssd, dados.x_mapeado, dados.y_mapeado);
-        ssd1306_send_data(&ssd);
-        
-
         if (modo_debbug_joystick)
         {
+            ssd1306_fill(&ssd, false); // Limpa a tela
+            ssd1306_send_data(&ssd);
+
             if (tempo_agora - temporizador > 30)
             {
                 temporizador = tempo_agora;
                 limpar_serial_monitor();
                 printf("Valor sendo lido em y %d\nValor sendo lido em x: %d\n", adc_value_y, adc_value_x);
             }
+        }
+        else if (modo_terminal)
+        {
+            ssd1306_fill(&ssd, false); // Limpa a tela
+            ssd1306_send_data(&ssd);
+
+            if (tempo_agora - temporizador > 3000)
+            {
+                ssd1306_fill(&ssd, false); // Limpa a tela
+                ssd1306_send_data(&ssd);
+                temporizador = tempo_agora;
+                limpar_serial_monitor();
+                printf("Você está no terminal usuário, escolha uma opção: \n");
+                printf("Digite 1 para acender/desligar Led RGB\n");
+                printf("Digite 2 para Acender/desligar matriz 5 x 5\n");
+                printf("Digite 3 para trocar para uma cor aleatória para a Led RGB\n");
+                printf("Digite 4 para trocar a cor da matriz 5 x 5 para uma cor aleatória\n");
+                printf("Digite 5 para alterar o dutycicle do Led RGB\n");
+                printf("Digite 6 para alterar o dutycicle da Matriz  5x5\n");
+                printf("Digite 7 para sair do modo terminal\n\n");
+
+                if (stdio_usb_connected())
+                {
+                    char opcao = getchar(); // Lê a opção do usuário
+
+                    switch (opcao)
+                    {
+                    case '1':
+                        printf("Led RGB aceso/desligado\n");
+                        led_rgb_estado = !led_rgb_estado; // Inverte o estado
+                        if (led_rgb_estado)
+                        {
+                            acender_led_rgb(255, 255, 255);
+                        }
+                        else
+                        {
+                            turn_off_leds();
+                        }
+                        break;
+
+                    case '2':
+                        printf("Matriz 5x5 acesa/desligada\n");
+                        matriz_estado = !matriz_estado; // Inverte o estado
+                        if (matriz_estado)
+                        {
+                            acenderTodaMatrizIntensidade(COLOR_WHITE, 1.0); // Acende a matriz com cor branca
+                        }
+                        else
+                        {
+                            npClear(); // Desliga a matriz
+                        }
+                        break;
+
+                        // case '3':
+                        //     printf("Cor aleatória para LED RGB\n");
+                        //     r_atual = rand() % 256;
+                        //     g_atual = rand() % 256;
+                        //     b_atual = rand() % 256;
+                        //     if (led_rgb_estado)
+                        //     {
+                        //         acender_led_rgb(r_atual, g_atual, b_atual);
+                        //     }
+                        //     printf("Nova cor RGB: (%d, %d, %d)\n", r_atual, g_atual, b_atual);
+                        //     break;
+
+                        // case '4':
+                        //     printf("Cor aleatória para Matriz 5x5\n");
+                        //     matriz_cor = rand() % 3; // 0=vermelho, 1=verde, 2=azul
+                        //     if (matriz_estado)
+                        //     {
+                        //         atualizar_cor_matriz(matriz_cor);
+                        //     }
+                        //     printf("Nova cor da matriz: %s\n",
+                        //            matriz_cor == 0 ? "Vermelho" : matriz_cor == 1 ? "Verde"
+                        //                                                           : "Azul");
+                        //     break;
+
+                        // case '5':
+                        //     printf("Digite o novo duty cycle para o LED RGB (0-100): ");
+                        //     int duty_rgb;
+                        //     scanf("%d", &duty_rgb);
+                        //     if (duty_rgb >= 0 && duty_rgb <= 100)
+                        //     {
+                        //         dutycycle_rgb = duty_rgb;
+                        //         printf("Duty cycle do LED RGB alterado para %d%%\n", dutycycle_rgb);
+                        //         if (led_rgb_estado)
+                        //         {
+                        //             acender_led_rgb(r_atual, g_atual, b_atual); // Atualiza com novo duty cycle
+                        //         }
+                        //     }
+                        //     else
+                        //     {
+                        //         printf("Valor inválido! O duty cycle deve estar entre 0 e 100\n");
+                        //     }
+                        //     break;
+
+                        // case '6':
+                        //     printf("Digite o novo duty cycle para a Matriz 5x5 (0-100): ");
+                        //     int duty_matriz;
+                        //     scanf("%d", &duty_matriz);
+                        //     if (duty_matriz >= 0 && duty_matriz <= 100)
+                        //     {
+                        //         dutycycle_matriz = duty_matriz;
+                        //         printf("Duty cycle da Matriz 5x5 alterado para %d%%\n", dutycycle_matriz);
+                        //         if (matriz_estado)
+                        //         {
+                        //             atualizar_dutycycle_matriz(dutycycle_matriz);
+                        //         }
+                        //     }
+                        //     else
+                        //     {
+                        //         printf("Valor inválido! O duty cycle deve estar entre 0 e 100\n");
+                        //     }
+                        //     break;
+
+                        // case '7':
+                        //     printf("Saindo do modo terminal\n");
+                        //     modo_terminal = false;
+                        //     break;
+
+                        // default:
+                        //     printf("Opção inválida!\n");
+                        //     break;
+                    }
+                }
+            }
+        }
+        else if (modo_debbug_joystick == false && modo_terminal == false)
+        {
+            // Opção padrão exigida na atividade.
+
+            // Remapeando os valores lidos do ADC
+
+            remapear_valores(adc_value_x, adc_value_y, &dados);
+            // Desenhando o quadrado na posição remapeada
+            ssd1306_fill(&ssd, false); // Limpa a tela
+            ssd1306_send_data(&ssd);
+            draw_square(&ssd, dados.x_mapeado, dados.y_mapeado);
+            ssd1306_send_data(&ssd);
         }
     }
 }
@@ -144,18 +291,32 @@ void gpio_irq_handle(uint gpio, uint32_t events)
 {
     uint32_t current_time = to_us_since_boot(get_absolute_time());
 
-    if (current_time - last_button_time > 100) // Debounce de 100ms
-    {
-        last_button_time = current_time;
+    // Verificação de debounce
+    if (current_time - last_button_time <= 100) // Debounce de 100ms
+        return;
 
-        if (gpio == BUTTON_A)
-        {
-            modo_debbug_joystick = !modo_debbug_joystick; // Alterna para o modo de depuração do debbug
-        }
-        else if (gpio == BUTTON_B)
-        {
-            printf("Botão B pressionado\n");
-        }
+    last_button_time = current_time;
+
+    switch (gpio)
+    {
+    case BUTTON_A:
+        modo_terminal = false;                        // Desabilita o modo terminal
+        modo_debbug_joystick = !modo_debbug_joystick; // Alterna para o modo de depuração do debbug
+        break;
+
+    case BUTTON_B:
+        limpar_serial_monitor(); // Limpa o monitor serial
+        printf("Botão B pressionado\n");
+        printf("Entrando no modo bootshel\n");
+        reset_usb_boot(0, 0);
+        break;
+
+    case SW_PIN:
+        modo_debbug_joystick = false; // Desabilita o modo de depuração do debbug
+        limpar_serial_monitor();      // Limpa o monitor serial
+        printf("Você está no terminal usuário, escolha uma opção: \n");
+        modo_terminal = !modo_terminal; // Alterna para o modo terminal
+        break;
     }
 }
 

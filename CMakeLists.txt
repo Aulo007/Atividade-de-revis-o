@@ -19,7 +19,7 @@ set(sdkVersion 2.1.1)
 set(toolchainVersion 14_2_Rel1)
 set(picotoolVersion 2.1.1)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
-if (EXISTS ${picoVscode})
+if(EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(Main Main.c lib/ssd1306.c)
+add_executable(Main Main.c lib/ssd1306.c lib/buzzer.c lib/matrizRGB.c lib/leds.c)
 
 pico_set_program_name(Main "Main")
 pico_set_program_version(Main "0.1")
@@ -44,17 +44,20 @@ pico_set_program_version(Main "0.1")
 pico_enable_stdio_uart(Main 1)
 pico_enable_stdio_usb(Main 1)
 
+pico_generate_pio_header(Main ${CMAKE_CURRENT_LIST_DIR}/ws2818b.pio)
+
 # Add the standard library to the build
 target_link_libraries(Main
-        pico_stdlib)
+    pico_stdlib)
 
 # Add the standard include files to the build
 target_include_directories(Main PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Add any user requested libraries
 target_link_libraries(Main
+    pico_bootrom
     pico_stdlib
     hardware_adc
     hardware_pwm
@@ -62,7 +65,7 @@ target_link_libraries(Main
     hardware_pio
     hardware_clocks
     hardware_gpio
-        )
+)
 
 pico_add_extra_outputs(Main)
 
