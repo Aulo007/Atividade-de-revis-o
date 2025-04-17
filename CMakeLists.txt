@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2_w CACHE STRING "Board type")
+set(PICO_BOARD pico_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -35,14 +35,14 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(Main Main.c )
+add_executable(Main Main.c lib/ssd1306.c)
 
 pico_set_program_name(Main "Main")
 pico_set_program_version(Main "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(Main 0)
-pico_enable_stdio_usb(Main 0)
+pico_enable_stdio_uart(Main 1)
+pico_enable_stdio_usb(Main 1)
 
 # Add the standard library to the build
 target_link_libraries(Main
@@ -54,8 +54,14 @@ target_include_directories(Main PRIVATE
 )
 
 # Add any user requested libraries
-target_link_libraries(Main hardware_pwm
-        
+target_link_libraries(Main
+    pico_stdlib
+    hardware_adc
+    hardware_pwm
+    hardware_i2c
+    hardware_pio
+    hardware_clocks
+    hardware_gpio
         )
 
 pico_add_extra_outputs(Main)
