@@ -27,6 +27,14 @@ static volatile bool modo_debbug_joystick = false;
 uint16_t adc_value_x;
 uint16_t adc_value_y;
 
+typedef struct
+{
+    uint16_t x_mapeado;
+    uint16_t y_mapeado;
+} Remapeamento;
+
+void remapear_valores(uint16_t valor_x, uint16_t valor_y, Remapeamento *resultado);
+
 void limpar_serial_monitor();
 void gpio_irq_handle(uint gpio, uint32_t events);
 
@@ -58,18 +66,41 @@ int main()
     gpio_pull_up(BUTTON_A);
     gpio_pull_up(BUTTON_B);
 
-
-    
     gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handle);
     gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handle);
 
     ssd1306_fill(&ssd, false);
     ssd1306_send_data(&ssd);
-    ssd1306_draw_string(&ssd, "A", 63, 31); // Desenha a string no display
-    ssd1306_draw_string(&ssd, "A", 0, 0); // Desenha a string no display
-    ssd1306_draw_string(&ssd, "A", 127, 63); // Desenha a string no display
-    ssd1306_send_data(&ssd);
 
+    // Debugação, aqui eu sei que o meu caractere A que ocupa 8 pixeis de espaços
+    // Porém ele ocupa isso da direita para esquerda e de cima para baixo, ou seja,na primeira posição x: 0 e y: 0
+    // Ele vai aparecer normalmente, mas se eu colocar na última posição x: 128 e y: 64, ele não vai aparecer, devido ao
+    // fato de ocupar 8 pixeis a mais para direita e 8 pixeis a mais para baixo, logo ele vai sair do display
+    // Então basta diminuir os 8 pixeis das posições limites do display, ou seja, 128 - 8 e 64 - 8 e ele aparecerá.
+    // Isso vai ser importante para fazer o quadrado no centro, porque como ele é 8 x 8, para eu centralizar ele bonitinho
+    // no caso a posição central é 63 x 31, logo preciso fazer 63 - 4 e 31 - 4, para ele ficar centralizado.
+    // E também preciso encontrar todas as bordas limites, por exemplo, para x máximo, 128 - 8 e para y máximo 64 - 8
+    // logo para o canto inferior esquerdo terei x: 0 e y: 64 - 8, e para o canto superior direito terei x: 128 - 8 e y: 0
+    // E para o canto inferior direito terei x: 128 - 8 e y: 64 - 8, e para o superior esquerdo x: 0 e y:0 como já sabemos
+    // Isso é importante porque assim posso fazer os limites dos meus valores adc_y e adc_x para bater com o máximo da minha borda
+    // Logo, para adc_y que com a função com interrupção com o botão A, consigo debugar os valores dele, tenho o seguinte:
+    // para o Joystick parado, o valor de y é em torno de 1993 até 1995 e o de x: 2084 até 2085
+    // o Valor máximo de y é 4073 e o mínimo é 11 - 12
+    // Para o x, o valor máximo é 4073 e o mínimo é 11 - 12 também
+    // Logo, definindo-se uma função que converta 4073y para 63 - 8
+    // Logo para remapear os valores, vou criar uma função remap que receba os valores adc_y e adc_x e volte os valores remapeados
+    // Também utilizarei Struct e ponteiro para seguir a sugestão do professor Ricardo.
+    ssd1306_draw_string(&ssd, "A", 123 - 8, 63 - 8);
+
+    // Usando isso:
+
+    Remapeamento dados;
+
+    remapear_valores(1993, 2084, &dados);
+
+    // Desenhar A na posição central com base nos valores centrais dos joysticks
+    ssd1306_draw_string(&ssd, "A", dados.x_mapeado, dados.y_mapeado);
+    ssd1306_send_data(&ssd);
 
     while (true)
     {
@@ -81,10 +112,15 @@ int main()
         adc_select_input(1);
         adc_value_x = adc_read();
 
-        // O display tem 128 x 64, logo o centro dele é 64 x 32, a posição 0 dele é 0 x 0
+        // Remapeando os valores lidos do ADC
 
-        draw_square(&ssd, adc_value_x / 4, adc_value_y / 4); // Desenha o quadrado na posição do joystick
-        ssd1306_send_data(&ssd); // Envia os dados para o display
+        remapear_valores(adc_value_x, adc_value_y, &dados);
+        // Desenhando o quadrado na posição remapeada
+        ssd1306_fill(&ssd, false); // Limpa a tela
+        ssd1306_send_data(&ssd);
+        draw_square(&ssd, dados.x_mapeado, dados.y_mapeado);
+        ssd1306_send_data(&ssd);
+        
 
         if (modo_debbug_joystick)
         {
@@ -121,4 +157,10 @@ void gpio_irq_handle(uint gpio, uint32_t events)
             printf("Botão B pressionado\n");
         }
     }
+}
+
+void remapear_valores(uint16_t valor_x, uint16_t valor_y, Remapeamento *resultado)
+{
+    resultado->x_mapeado = (valor_x - 11) * (127 - 8) / (4073 - 11);
+    resultado->y_mapeado = (4073 - valor_y) * (63 - 8) / (4073 - 11);
 }
