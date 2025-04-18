@@ -41,17 +41,9 @@ volatile bool mudanca_estado = true;
 // Constantes globais, essenciais para o código
 // ==============================
 
-#define ADC_MIN 11
-#define ADC_MAX 4073
-#define DISPLAY_X_MIN 0
-#define DISPLAY_Y_MIN 0
-#define DISPLAY_X_MAX 127
-#define DISPLAY_Y_MAX 63
-#define SQUARE_SIZE 8 // Tamanho do quadrado para centralização
-
-#define I2C_PORT i2c0
-#define I2C_SDA 4
-#define I2C_SCL 5
+#define I2C_PORT i2c1
+#define I2C_SDA 14
+#define I2C_SCL 15
 #define I2C_ADDR 0x3C
 
 volatile uint32_t last_button_time = 0;
@@ -99,10 +91,10 @@ void init_joystick_adc()
 void init_buttons()
 {
     gpio_set_dir(BUTTON_A, GPIO_IN);
-    gpio_pull_up(BUTTON_A);
     gpio_set_dir(BUTTON_B, GPIO_IN);
-    gpio_pull_up(BUTTON_B);
     gpio_set_dir(SW_PIN, GPIO_IN);
+    gpio_pull_up(BUTTON_A);
+    gpio_pull_up(BUTTON_B);
     gpio_pull_up(SW_PIN);
 }
 
@@ -136,8 +128,6 @@ int main(void)
 
     while (true)
     {
-
-        printf("Estado Atual: %d\n", estado_atual); // depurar
         // ==============================
         // Realiza leitura do joystick
         // ==============================
@@ -175,7 +165,7 @@ int main(void)
 
             remapear_valores(adc_x_valor, adc_y_valor, &dados);
             ssd1306_fill(&ssd, false);
-            draw_square(&ssd, dados.x_mapeado - (SQUARE_SIZE / 2), dados.y_mapeado - (SQUARE_SIZE / 2));
+            draw_square(&ssd, dados.x_mapeado, dados.y_mapeado);
             ssd1306_send_data(&ssd);
             break;
         }
@@ -258,8 +248,8 @@ void mostrarMenu()
 
 void remapear_valores(uint16_t valor_x, uint16_t valor_y, Remapeamento *resultado)
 {
-    resultado->x_mapeado = (valor_x - ADC_MIN) * (DISPLAY_X_MAX - DISPLAY_X_MIN) / (ADC_MAX - ADC_MIN) + DISPLAY_X_MIN;
-    resultado->y_mapeado = (ADC_MAX - valor_y) * (DISPLAY_Y_MAX - DISPLAY_Y_MIN) / (ADC_MAX - ADC_MIN) + DISPLAY_Y_MIN;
+    resultado->x_mapeado = (valor_x - 11) * (127 - 8) / (4073 - 11);
+    resultado->y_mapeado = (4073 - valor_y) * (63 - 8) / (4073 - 11);
 }
 
 void limpar_serial_monitor()
@@ -282,9 +272,8 @@ void gpio_irq_handle(uint gpio, uint32_t events)
         switch (gpio)
         {
         case BUTTON_A:
-            estado_atual = MODO_PADRAO;
+            estado_atual = MODO_DEBBUG;
             mudanca_estado = true;
-            printf("Eu estou causando problemas");
             break;
 
         case BUTTON_B:
@@ -295,7 +284,6 @@ void gpio_irq_handle(uint gpio, uint32_t events)
             estado_atual = MODO_TERMINAL;
             mudanca_estado = true;
             limpar_serial_monitor();
-            printf("Eu estou causando problemas 2");
             break;
         }
     }
