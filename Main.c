@@ -118,6 +118,7 @@ int main(void)
 
     npInit(7);
     led_init();
+    buzzer_init();
 
     Remapeamento dados;
     uint32_t tempo_anterior = 0;
@@ -137,6 +138,39 @@ int main(void)
         adc_select_input(1);
         uint16_t adc_x = adc_read();
 
+        /*
+    Debugação:
+    sd1306_draw_string(&ssd, "A", 123 - 8, 63 - 8)
+    O caractere 'A' ocupa um espaço de 8 pixels, sendo desenhado da direita para a esquerda e de cima para baixo.
+    Na posição (x: 0, y: 0), ele aparece normalmente, mas se colocado na posição (x: 127, y: 63), não será exibido,
+    pois ultrapassa os limites do display em 8 pixels para a direita e para baixo.
+
+    Para garantir sua visibilidade, basta ajustar a posição dentro dos limites do display: (127 - 8) e (63 - 8).
+
+    Essa lógica também é essencial para centralizar um quadrado de 8x8 pixels. A posição central do display é (63, 31),
+    então para alinhá-lo corretamente, basta calcular: (63 - 4, 31 - 4).
+
+    Também é necessário determinar todas as bordas:
+    - Canto inferior esquerdo: (x: 0, y: 63 - 8)
+    - Canto superior direito: (x: 127 - 8, y: 0)
+    - Canto inferior direito: (x: 127 - 8, y: 63 - 8)
+    - Canto superior esquerdo: (x: 0, y: 0)
+
+    Dessa forma, os valores de adc_y e adc_x podem ser ajustados para corresponder aos limites do display.
+
+    Valores do joystick com botão A:
+    - Joystick parado: y varia entre 1993 e 1995, x entre 2084 e 2085.
+    - Valor máximo de y: 4073, mínimo: 11-12.
+    - Valor máximo de x: 4073, mínimo: 11-12.
+
+    Para remapear os valores, será criada a função remap, que receberá adc_y e adc_x e retornará os valores ajustados.
+    Também será utilizada `struct` e ponteiro, conforme sugestão do professor Ricardo.
+*/
+
+        ssd1306_draw_string(&ssd, "A", 123 - 8, 63 - 8);
+
+        // Só vou realmente atualizar os valores se houver uma diferença significativa entre os valores atuais e os anteriores.
+        // Isso evita o display ficar piscando sem parar e etc.
         if (abs(adc_y - adc_y_anterior) > 50 || abs(adc_x - adc_x_anterior) > 50)
         {
             adc_y_valor = adc_y;
@@ -219,6 +253,10 @@ int main(void)
                         break;
 
                     case '3':
+                        play_mario_kart_theme(1);
+                        break;
+
+                    case '4':
                         estado_atual = MODO_PADRAO;
                         mudanca_estado = true;
                         break;
@@ -243,7 +281,8 @@ void mostrarMenu()
     printf("Terminal Ativo - Escolha uma opção:\n");
     printf("1 - Ligar/Desligar LED RGB\n");
     printf("2 - Ligar/Desligar matriz RGB 5x5\n");
-    printf("3 - Sair do terminal\n\n");
+    printf("3 - Tocar tema do Mário\n");
+    printf("4 - Sair do terminal\n");
 }
 
 void remapear_valores(uint16_t valor_x, uint16_t valor_y, Remapeamento *resultado)
@@ -261,6 +300,8 @@ void gpio_irq_handle(uint gpio, uint32_t events)
 {
     uint32_t current_time = to_ms_since_boot(get_absolute_time());
 
+    printf("Ruído\n"); // Para debbugar o debouce. Verificar funcionamento.
+
     if (current_time - last_button_time > 100)
     { // Debounce 100ms
         last_button_time = current_time;
@@ -274,6 +315,7 @@ void gpio_irq_handle(uint gpio, uint32_t events)
         case BUTTON_A:
             estado_atual = MODO_DEBBUG;
             mudanca_estado = true;
+            printf("Botão A apertado\n"); // Para debbugar o debouce. Verificar funcionamento.
             break;
 
         case BUTTON_B:
