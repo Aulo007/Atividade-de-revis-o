@@ -277,6 +277,7 @@ int main(void)
                         break;
 
                     case '6':
+                        matriz_estado = true;
                         animar_desenhos(350, 10, caixa_de_desenhos, (1), (1), (1));
                         mostrarMenu();
                         break;
@@ -346,7 +347,7 @@ void gpio_irq_handle(uint gpio, uint32_t events)
 
     printf("Ruído\n"); // Para debbugar o debouce. Verificar funcionamento.
 
-    if (current_time - last_button_time > 100)
+    if (current_time - last_button_time > 200)
     { // Debounce 100ms
         last_button_time = current_time;
 
@@ -357,6 +358,12 @@ void gpio_irq_handle(uint gpio, uint32_t events)
         switch (gpio)
         {
         case BUTTON_A:
+            if (estado_atual == MODO_DEBBUG)
+            {
+                estado_atual = MODO_PADRAO;
+                mudanca_estado = true;
+                break;
+            }
             estado_atual = MODO_DEBBUG;
             mudanca_estado = true;
             printf("Botão A apertado\n"); // Para debbugar o debouce. Verificar funcionamento.
