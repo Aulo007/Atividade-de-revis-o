@@ -1,6 +1,9 @@
 #include "leds.h"
 #include "hardware/pwm.h"
+#include "matrizRGB.h"
 #include <stdio.h>
+#include <stdlib.h>
+
 
 // Configuração do PWM
 static uint slice_num_red;
@@ -60,6 +63,18 @@ void acender_led_rgb(uint8_t r, uint8_t g, uint8_t b)
     pwm_set_gpio_level(LED_GREEN_PIN, valor_g);
     pwm_set_gpio_level(LED_BLUE_PIN, valor_b);
 }
+
+void acender_led_rgb_cor(npColor_t cor)
+{
+    // Chamar a função com os valores RGB da estrutura npColor_t
+    acender_led_rgb(cor.r, cor.g, cor.b);
+}
+
+void acender_led_rgb_cor_aleatoria(void)
+{
+    acender_led_rgb_cor((npColor_t){rand() % 256, rand() % 256, rand() % 256});
+}
+
 
 void turn_off_leds(void)
 {

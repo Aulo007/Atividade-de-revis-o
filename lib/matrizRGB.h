@@ -9,22 +9,24 @@ typedef struct
     uint8_t G, R, B;
 } npLED_t;
 
-#define COLOR_RED     (npColor_t){255, 0, 0}
-#define COLOR_GREEN   (npColor_t){0, 255, 0}
-#define COLOR_BLUE    (npColor_t){0, 0, 255}
-#define COLOR_WHITE   (npColor_t){255, 255, 255}
-#define COLOR_BLACK   (npColor_t){0, 0, 0}
-#define COLOR_YELLOW  (npColor_t){255, 255, 0}
-#define COLOR_CYAN    (npColor_t){0, 255, 255}
+#define COLOR_RED (npColor_t){255, 0, 0}
+#define COLOR_GREEN (npColor_t){0, 255, 0}
+#define COLOR_BLUE (npColor_t){0, 0, 255}
+#define COLOR_WHITE (npColor_t){255, 255, 255}
+#define COLOR_BLACK (npColor_t){0, 0, 0}
+#define COLOR_YELLOW (npColor_t){255, 255, 0}
+#define COLOR_CYAN (npColor_t){0, 255, 255}
 #define COLOR_MAGENTA (npColor_t){255, 0, 255}
-#define COLOR_PURPLE  (npColor_t){128, 0, 128}
-#define COLOR_ORANGE  (npColor_t){255, 165, 0}
+#define COLOR_PURPLE (npColor_t){128, 0, 128}
+#define COLOR_ORANGE (npColor_t){255, 165, 0}
 
 // Tipo para representar uma cor RGB
-typedef struct {
+typedef struct
+{
     uint8_t r, g, b;
 } npColor_t;
 
+extern npColor_t colors[];
 
 // Declaração de funções
 

@@ -11,6 +11,10 @@ npLED_t leds[LED_COUNT];
 static PIO np_pio;
 static uint sm;
 
+
+npColor_t colors[] = {COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_WHITE, COLOR_BLACK,
+                             COLOR_YELLOW, COLOR_CYAN, COLOR_MAGENTA, COLOR_PURPLE, COLOR_ORANGE};
+
 // Inicialização da Matrix 5x5, na bitdoglab no pino 7
 void npInit(uint8_t pin)
 {

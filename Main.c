@@ -255,13 +255,33 @@ int main(void)
 
                     case '3':
                         play_mario_kart_theme(1);
+                        mostrarMenu();
                         break;
 
                     case '4':
-                        animar_desenhos(1000, 10, caixa_de_desenhos, (1), (1), (1));
+                        if (led_rgb_estado)
+                        {
+                            acender_led_rgb_cor_aleatoria();
+                            mostrarMenu();
+                        }
+
                         break;
 
                     case '5':
+                        if (led_rgb_estado)
+                        {
+                            força_leds(rand() % 100);
+                            mostrarMenu();
+                        }
+
+                        break;
+
+                    case '6':
+                        animar_desenhos(350, 10, caixa_de_desenhos, (1), (1), (1));
+                        mostrarMenu();
+                        break;
+
+                    case '7':
                         estado_atual = MODO_PADRAO;
                         mudanca_estado = true;
                         break;
@@ -287,8 +307,26 @@ void mostrarMenu()
     printf("1 - Ligar/Desligar LED RGB\n");
     printf("2 - Ligar/Desligar matriz RGB 5x5\n");
     printf("3 - Tocar tema do Mário\n");
-    printf("4 - Mostrar números de \n");
-    printf("5 - Sair do terminal\n");
+    printf("4 - Trocar cor do Led RGB para uma cor aleatória\n");
+    printf("5 - Alterar força do Led de forma aleatória\n");
+    printf("6 - Mostrar números de 0 a 9 na matriz RGB 5x5\n");
+    printf("7 - Sair do terminal\n");
+}
+
+float ler_float_nao_bloqueante()
+{
+    char buffer[16] = {0}; // Buffer para armazenar a entrada
+    int index = 0;
+    int caractere;
+
+    while ((caractere = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT && index < sizeof(buffer) - 1)
+    {
+        if (caractere == '\n')
+            break; // Finaliza ao detectar Enter
+        buffer[index++] = (char)caractere;
+    }
+
+    return (index > 0) ? atof(buffer) : -1; // Converte para float ou retorna erro (-1)
 }
 
 void remapear_valores(uint16_t valor_x, uint16_t valor_y, Remapeamento *resultado)
