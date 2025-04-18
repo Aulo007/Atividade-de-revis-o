@@ -29,6 +29,7 @@ typedef struct {
 // Declaração de funções
 
 void acenderTodaMatrizIntensidade(npColor_t cor, float intensidade);
+void animar_desenhos(int PERIODO, int num_desenhos, int caixa_de_desenhos[num_desenhos][5][5][3], double intensidade_r, double intensidade_g, double intensidade_b);
 void npInit(uint8_t pin);
 void npClear();
 void npWrite();

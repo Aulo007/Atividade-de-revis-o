@@ -3,6 +3,7 @@
 #include "hardware/pwm.h"
 #include "hardware/adc.h"
 #include "pico/bootrom.h"
+#include "extra/Desenho.h"
 
 // ==============================
 // Bibliotecas personalizadas
@@ -257,6 +258,10 @@ int main(void)
                         break;
 
                     case '4':
+                        animar_desenhos(1000, 10, caixa_de_desenhos, (1), (1), (1));
+                        break;
+
+                    case '5':
                         estado_atual = MODO_PADRAO;
                         mudanca_estado = true;
                         break;
@@ -282,7 +287,8 @@ void mostrarMenu()
     printf("1 - Ligar/Desligar LED RGB\n");
     printf("2 - Ligar/Desligar matriz RGB 5x5\n");
     printf("3 - Tocar tema do Mário\n");
-    printf("4 - Sair do terminal\n");
+    printf("4 - Mostrar números de \n");
+    printf("5 - Sair do terminal\n");
 }
 
 void remapear_valores(uint16_t valor_x, uint16_t valor_y, Remapeamento *resultado)

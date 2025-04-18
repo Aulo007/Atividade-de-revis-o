@@ -104,12 +104,13 @@ int getIndex(int x, int y)
     }
 }
 
-
 void acenderTodaMatrizIntensidade(npColor_t cor, float intensidade)
 {
     // Limitar intensidade entre 0 e 1
-    if (intensidade < 0.0f) intensidade = 0.0f;
-    if (intensidade > 1.0f) intensidade = 1.0f;
+    if (intensidade < 0.0f)
+        intensidade = 0.0f;
+    if (intensidade > 1.0f)
+        intensidade = 1.0f;
 
     for (int i = 0; i < LED_COUNT; i++)
     {
@@ -118,4 +119,15 @@ void acenderTodaMatrizIntensidade(npColor_t cor, float intensidade)
         leds[i].B = (uint8_t)(cor.b * intensidade);
     }
     npWrite();
+}
+
+void animar_desenhos(int PERIODO, int num_desenhos, int caixa_de_desenhos[num_desenhos][5][5][3], double intensidade_r, double intensidade_g, double intensidade_b)
+{
+
+    for (int i = 0; i < num_desenhos; i++)
+    {
+        setMatrizDeLEDSComIntensidade(caixa_de_desenhos[i], intensidade_r, intensidade_g, intensidade_b);
+        npWrite();         // Atualiza a matriz de LEDs
+        sleep_ms(PERIODO); // Controla o tempo entre cada quadro
+    }
 }
