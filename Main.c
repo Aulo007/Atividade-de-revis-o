@@ -314,22 +314,6 @@ void mostrarMenu()
     printf("7 - Sair do terminal\n");
 }
 
-float ler_float_nao_bloqueante()
-{
-    char buffer[16] = {0}; // Buffer para armazenar a entrada
-    int index = 0;
-    int caractere;
-
-    while ((caractere = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT && index < sizeof(buffer) - 1)
-    {
-        if (caractere == '\n')
-            break; // Finaliza ao detectar Enter
-        buffer[index++] = (char)caractere;
-    }
-
-    return (index > 0) ? atof(buffer) : -1; // Converte para float ou retorna erro (-1)
-}
-
 void remapear_valores(uint16_t valor_x, uint16_t valor_y, Remapeamento *resultado)
 {
     resultado->x_mapeado = (valor_x - 11) * (127 - 8) / (4073 - 11);
